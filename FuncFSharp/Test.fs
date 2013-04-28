@@ -9,16 +9,21 @@ module Test =
     let unit (a: 'a) : Rand<'a> =
         fun rng -> (a, rng)
 
-    let map (s: Rand<'a>) (f: 'a -> 'b) : Rand<'b> =
+    let flatMap(f: Rand<'a>)(g: 'a -> Rand<'b>) : Rand<'b> =
         fun rng ->
-            let (a, rng2) = s(rng)
-            (f(a), rng2)
+            let (a, rng2) = f(rng)
+            g(a)(rng2)
+
+    let map (s: Rand<'a>) (f: 'a -> 'b) : Rand<'b> =
+        flatMap(s) (fun a -> unit(f(a)))
 
     let map2(ra: Rand<'a>, rb: Rand<'b>)(f: ('a * 'b) -> 'c) : Rand<'c> =
-        fun rng ->
-            let (a, rng2) = ra(rng)
-            let (b, rng3) = rb(rng2)
-            (f(a,b), rng3)
+        flatMap(ra) (fun (a) -> flatMap(rb)(fun(b) -> unit(f(a,b))))
+
+    let rec sequence (fs: List<Rand<'a>>) : Rand<List<'a>> = 
+        match fs with
+        | [] -> unit([])
+        | x::xs -> map2 (x, sequence(xs)) (fun (a, b) -> a :: b)
 
     let simpleGen (rng:RNG) : (int * RNG) =
         let (value, nextRng) = 
@@ -41,22 +46,20 @@ module Test =
             | System.Int32.MinValue -> System.Int32.MaxValue
             | _ -> value
 
-    let positiveInt (rng: RNG) =
+    let rec positiveInt (rng: RNG) =
         let (value, nextRng) = randInt rng
-        (positiveValue(value), nextRng)
+        match value with
+            | System.Int32.MinValue -> positiveInt nextRng
+            | _ -> (Math.Abs(value), nextRng)
 
     let randDouble =
         map simpleGen (fun value -> double(value) / double(System.Int32.MaxValue))
 
-    let intDouble(rng: RNG) =
-        let (intValue, nextRng) = randInt rng
-        let (doubleValue, nextRng) = randDouble(nextRng)
-        (intValue, doubleValue), nextRng
+    let intDouble =
+        map2 (simpleGen, randDouble) id
         
     let doubleInt(rng: RNG) =
-        let (intValue, nextRng) = randInt rng
-        let (doubleValue, nextRng) = randDouble(nextRng)
-        (doubleValue, intValue), nextRng
+        map2 (randDouble, simpleGen) id
 
     let double3(rng: RNG) =
         let (double1, rng) = randDouble(rng)
@@ -64,28 +67,25 @@ module Test =
         let (double3, rng) = randDouble(rng)
         (double1, double2, double3), rng
 
-    let rec ints(count: int)(rng: RNG) : (List<int> * RNG) =
-        match count with
-        | 0 -> (List.empty, rng)
-        | _ -> 
-            let (values, nextRng) =
-                ints(count - 1)(rng)
-            let (myValue, nextRng) = randInt(nextRng)
-            (myValue :: values, nextRng)
-
+    let rec ints(count: int) : Rand<List<int>> =
+        sequence(List.replicate count randInt)
 
     let positiveMax (n:int) : Rand<int> =
         let getPosMax x =
-            let positive = decimal(positiveValue x)
-            int(Math.Floor(positive/decimal(System.Int32.MaxValue) * decimal(n)))
-        map simpleGen getPosMax
-
+            int(Math.Floor(decimal(x)/decimal(System.Int32.MaxValue) * decimal(n)))
+        map positiveInt getPosMax
 
     [<Test>]
     let positiveMaxCase () =
         let d2 = positiveMax(10)
         let (value, _) = d2(simple(DateTime.Now.Ticks))
         Assert.LessOrEqual(value, 10)
+
+    [<Test>]
+    let intDoubleCase () =
+        let d2 = intDouble
+        let ((intValue,doubleValue), _) = d2(simple(DateTime.Now.Ticks))
+        printfn "(%d,%f)" intValue doubleValue
 
     [<Test>] 
     let TestCase  () =
