@@ -4,27 +4,31 @@ open System
 open NUnit.Framework
 
 type RNG = RNG of (unit -> (int * RNG))
-type 'a Rand = RNG -> ('a * RNG)
-module Test = 
-    let unit (a: 'a) : Rand<'a> =
-        fun rng -> (a, rng)
+type State<'s,'a> = 's -> ('a * 's)
+type 'a Rand = State<RNG,'a>
 
-    let flatMap(f: Rand<'a>)(g: 'a -> Rand<'b>) : Rand<'b> =
-        fun rng ->
-            let (a, rng2) = f(rng)
+module State = 
+    let unit (a: 'a) : State<'s,'a> =
+        fun s -> (a, s)
+
+    let flatMap(f: State<'s,'a>)(g: 'a -> State<'s,'b>) : State<'s,'b> =
+        fun s ->
+            let (a, rng2) = f(s)
             g(a)(rng2)
 
-    let map (s: Rand<'a>) (f: 'a -> 'b) : Rand<'b> =
+    let map (s) (f: 'a -> 'b)  =
         flatMap(s) (fun a -> unit(f(a)))
 
-    let map2(ra: Rand<'a>, rb: Rand<'b>)(f: ('a * 'b) -> 'c) : Rand<'c> =
+    let map2(ra, rb)(f: ('a * 'b) -> 'c) =
         flatMap(ra) (fun (a) -> flatMap(rb)(fun(b) -> unit(f(a,b))))
 
-    let rec sequence (fs: List<Rand<'a>>) : Rand<List<'a>> = 
+    let rec sequence fs = 
         match fs with
         | [] -> unit([])
         | x::xs -> map2 (x, sequence(xs)) (fun (a, b) -> a :: b)
-
+    
+module Test = 
+    open State
     let simpleGen (rng:RNG) : (int * RNG) =
         let (value, nextRng) = 
             match rng with
