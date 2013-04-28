@@ -27,7 +27,7 @@ module State =
         | [] -> unit([])
         | x::xs -> map2 (x, sequence(xs)) (fun (a, b) -> a :: b)
     
-module Test = 
+module RandTest = 
     open State
     let simpleGen (rng:RNG) : (int * RNG) =
         let (value, nextRng) = 
