@@ -243,10 +243,18 @@ module MyList =
         Assert.False (hasSubsequence myList (Cons(5,Nil)))
         Assert.False (hasSubsequence myList (Cons(3,Cons(2,Nil))))
 
-    let rec treeSize t =
+    let rec treeFold (t:MyTree<'a>) (fl:'a -> 'b) (fb: 'b -> 'b -> 'b) : 'b =
+        match t with
+        | Leaf x -> fl x
+        | Branch(left, right) -> fb (treeFold left fl fb) (treeFold right fl fb)
+
+    let treeSize t =
+        treeFold t (fun l -> 1) (fun x y -> x + y)
+
+    let rec treeSize' t =
         match t with
         | Leaf _ -> 1
-        | Branch(left, right) -> treeSize left + treeSize right
+        | Branch(left, right) -> treeSize' left + treeSize' right
 
     [<Test>]
     let ``Tree Size`` () : unit =
@@ -254,10 +262,13 @@ module MyList =
         let result = treeSize myTree
         Assert.AreEqual(3, result)
 
-    let rec treeMax (t:MyTree<int>) =
+    let treeMax (t:MyTree<int>) =
+        treeFold t id max
+
+    let rec treeMax' (t:MyTree<int>) =
         match t with
         | Leaf x -> x
-        | Branch(left, right) -> max (treeMax left) (treeMax right)
+        | Branch(left, right) -> max (treeMax' left) (treeMax' right)
 
     [<Test>]
     let ``Tree Maximum`` () : unit =
@@ -265,10 +276,13 @@ module MyList =
         let result = treeMax myTree
         Assert.AreEqual(3, result)
 
-    let rec treeDepth t =
+    let treeDepth t =
+        treeFold t (fun _ -> 1) max
+
+    let rec treeDepth' t =
         match t with
         | Leaf _ -> 1
-        | Branch(left,right) -> 1 + (max (treeDepth left) (treeDepth right))
+        | Branch(left,right) -> 1 + (max (treeDepth' left) (treeDepth' right))
 
     [<Test>]
     let ``Tree Depth`` () : unit =
@@ -276,10 +290,13 @@ module MyList =
         let result = treeDepth myTree
         Assert.AreEqual(3, result)
 
-    let rec treeMap t f =
+    let treeMap t f =
+        treeFold t (fun x -> Leaf (f x)) (fun x y -> Branch(x,y))
+
+    let rec treeMap' t f =
         match t with
         | Leaf x -> Leaf (f x)
-        | Branch(left,right) -> Branch((treeMap left f),(treeMap right f))
+        | Branch(left,right) -> Branch((treeMap' left f),(treeMap' right f))
 
     [<Test>]
     let ``Add one to tree items`` () : unit =
