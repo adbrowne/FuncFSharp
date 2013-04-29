@@ -145,7 +145,6 @@ module MyList =
     let append (l1,l2) =
         foldRight l1 l2 (fun (x,y) -> Cons(x,y))
 
-
     [<Test>]
     let ``AppendTest`` () : unit =
         let input = Cons(1,Cons(2,Nil))
@@ -165,3 +164,77 @@ module MyList =
         let result = concat input
         let expectedResult = Cons(1,Cons(2,Cons(2,Cons(3,Cons(2,Cons(1,Nil))))))
         Assert.AreEqual(expectedResult, result)
+
+    let map l f =
+        reverseFold (foldLeft l Nil (fun (x,y) -> Cons(f y, x)))
+
+    [<Test>]
+    let ``Map Test`` () : unit = 
+        let result = map (Cons(1, Nil)) (fun x -> x + 1)
+        Assert.AreEqual(Cons(2,Nil), result)
+        
+    let filter l f =
+        let accFilter (x,y) =
+            match y with
+            | _ when f y -> Cons(y,x)
+            | _ -> x
+
+        reverseFold (foldLeft l Nil accFilter)
+
+    let flatMap l f =
+        foldRight l Nil (fun (x,y) -> append((f x), y))
+
+    let flatFilter (l:MyList<'a>) (f: 'a -> bool) =
+        flatMap l (fun x -> 
+                       match x with
+                       | _ when f x -> Cons(x,Nil)
+                       | _ -> Nil)
+
+    [<Test>]
+    let ``Filter Test`` () : unit = 
+        let result = flatFilter (Cons(1, Cons(2, Nil))) (fun x -> x % 2 = 0)
+        Assert.AreEqual(Cons(2,Nil), result)
+
+    [<Test>]
+    let ``FlatMap Test`` () : unit = 
+        let result = flatMap (Cons(1,Cons(2,Cons(3,Nil)))) (fun x -> Cons(x,Cons(x,Nil)))
+        Assert.AreEqual((Cons(1,Cons(1,Cons(2,Cons(2,Cons(3,Cons(3,Nil))))))), result)
+
+    let rec combineLists l1 l2 =
+        match (l1,l2) with
+        | (Cons(x,xs), Cons(y,ys)) -> Cons(x + y, combineLists xs ys)
+        | _ -> Nil
+
+    let rec flexCombineLists l1 l2 f =
+        match (l1,l2) with
+        | (Cons(x,xs), Cons(y,ys)) -> Cons(f x y, combineLists xs ys)
+        | _ -> Nil
+
+    [<Test>]
+    let ``Add lists test`` () : unit =
+        let result = flexCombineLists (Cons(1,Cons(2,Cons(3,Nil)))) (Cons(4,Cons(5,Cons(6,Nil)))) (+)
+        Assert.AreEqual((Cons(5,Cons(7,Cons(9,Nil)))), result)
+
+    let rec beginsWith l sub =
+        match (l,sub) with
+        | (_, Nil) -> true
+        | (Nil, _) -> false
+        | (Cons(x,xs), Cons(y,ys)) -> 
+            if x = y then beginsWith xs ys
+            else false
+
+    let rec hasSubsequence l sub =
+        if beginsWith l sub then true
+        else
+            match l with
+            | Nil -> false
+            | Cons(x,xs) -> hasSubsequence xs sub
+
+    [<Test>]
+    let ``Has Subsequence Test`` () : unit =
+        let myList = (Cons(1,Cons(2,Cons(3,Cons(4, Nil)))))
+        Assert.True (hasSubsequence myList (Cons(1,Cons(2,Nil))))
+        Assert.True (hasSubsequence myList (Cons(2,Cons(3,Nil))))
+        Assert.True (hasSubsequence myList (Cons(4,Nil)))
+        Assert.False (hasSubsequence myList (Cons(5,Nil)))
+        Assert.False (hasSubsequence myList (Cons(3,Cons(2,Nil))))
