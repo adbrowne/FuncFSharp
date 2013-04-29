@@ -133,11 +133,35 @@ module MyList =
         intReverse l Nil
 
     let reverseFold l = 
-        foldRight l Nil (fun (a,b) -> Cons(a,b))
+        foldLeft l Nil (fun (a,b) -> Cons(b,a))
 
     [<Test>]
     let ``Reverse`` () : unit =
         let input = Cons(1,Cons(2,Cons(3,Nil)))
-        let result = reverse1 input
+        let result = reverseFold input
         let expectedResult = Cons(3,Cons(2,Cons(1,Nil)))
+        Assert.AreEqual(expectedResult, result)
+
+    let append (l1,l2) =
+        foldRight l1 l2 (fun (x,y) -> Cons(x,y))
+
+
+    [<Test>]
+    let ``AppendTest`` () : unit =
+        let input = Cons(1,Cons(2,Nil))
+        let result = append (input, input)
+        let expectedResult = Cons(1,Cons(2,Cons(3,Cons(1,Cons(2,Cons(3,Nil))))))
+        Assert.AreEqual(expectedResult, result)
+
+    let concat (l:MyList<MyList<'a>>) =
+        foldRight l Nil append
+
+    [<Test>]
+    let ``ConcatTest`` () : unit =
+        let sublist1 = Cons(1,Cons(2,Nil))
+        let sublist2 = Cons(2,Nil)
+        let sublist3 = Cons(3,Cons(2,Cons(1,Nil)))
+        let input = Cons(sublist1, (Cons(sublist2, Cons(sublist3, Nil))))
+        let result = concat input
+        let expectedResult = Cons(1,Cons(2,Cons(2,Cons(3,Cons(2,Cons(1,Nil))))))
         Assert.AreEqual(expectedResult, result)
