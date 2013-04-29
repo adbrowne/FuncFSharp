@@ -55,6 +55,11 @@ module MyList =
         | Nil -> z
         | Cons(x, xs) -> f (x,(foldRight xs z f))
 
+    let rec foldLeft (l: MyList<'a>) (z:'b) (f: ('b*'a) -> 'b) : 'b =
+        match l with
+        | Nil -> z
+        | Cons(x, xs) -> foldLeft xs (f (z, x)) f
+
     let tupleUp (f: 'a -> 'b -> 'b) =
         fun (a,b) ->
             f(a)(b)
@@ -99,12 +104,18 @@ module MyList =
         let result = length input
         Assert.AreEqual(3, result)
 
+    let sumLeft l =
+        foldLeft l 0.0 (tupleUp (+))
+
     [<Test>]
-    let ``Stackoverflow`` () : unit =
+    let ``Won't Stackoverflow`` () : unit =
         let rec createList count list =
             match count with
             | 0 -> list
             | _ -> createList (count - 1) (Cons(float(count),list))
 
         let input = createList 10000000 Nil
-        sum2 input |> ignore
+
+        // sum2 input |> ignore // will overflow
+        sumLeft input |> ignore
+
