@@ -1,4 +1,5 @@
 ﻿module FunctionalDataStructures
+open NUnit.Framework
 type MyList<'a> = 
     | Nil
     | Cons of ('a * MyList<'a>)
@@ -49,6 +50,61 @@ module MyList =
         | Cons(x,Nil) -> Nil
         | Cons(x,xs) -> Cons(x, init(xs))
 
+    let rec foldRight (l: MyList<'a>) (z:'b) (f: ('a*'b) -> 'b) : 'b =
+        match l with
+        | Nil -> z
+        | Cons(x, xs) -> f (x,(foldRight xs z f))
+
+    let tupleUp (f: 'a -> 'b -> 'b) =
+        fun (a,b) ->
+            f(a)(b)
+
+    let sum2 l =
+        foldRight l 0.0 (tupleUp (+))
+
+    let product2 l =
+        foldRight l 1.0 (tupleUp (*))
+
     let example = Cons(1, Cons(2, Cons(3, Nil)))
+    let floatExample = Cons(1.0, Cons(2.0, Cons(3.0, Nil)))
     let example2 = buildList [1;2;3;]
-    let total = sum(example)
+
+    [<Test>]
+    let ``Simple list tests`` () : unit =
+        let total = sum(example)
+        Assert.AreEqual(6, total)
+
+    [<Test>]
+    let ``Sum with fold`` () : unit =
+        let result = sum2 floatExample
+        Assert.AreEqual(6, result)
+
+    [<Test>]
+    let ``Product with fold`` () : unit =
+        let result = product2 floatExample
+        Assert.AreEqual(6, result)
+
+    [<Test>]
+    let ``Data constructor with fold`` () : unit =
+        let input = Cons(1,Cons(2,Cons(3,Nil)))
+        let result = foldRight input Nil (Cons)
+        Assert.AreEqual(input, result)
+
+    let length l =
+        foldRight l 0 (fun (_, currentLength) -> currentLength + 1)
+
+    [<Test>]
+    let ``Length Test`` () : unit =
+        let input = Cons(1,Cons(2,Cons(3,Nil)))
+        let result = length input
+        Assert.AreEqual(3, result)
+
+    [<Test>]
+    let ``Stackoverflow`` () : unit =
+        let rec createList count list =
+            match count with
+            | 0 -> list
+            | _ -> createList (count - 1) (Cons(float(count),list))
+
+        let input = createList 10000000 Nil
+        sum2 input |> ignore

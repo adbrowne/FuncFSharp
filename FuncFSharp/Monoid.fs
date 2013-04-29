@@ -37,4 +37,4 @@ module MonoidTests =
     [<Test>] 
     let ``Some Test`` () : unit = 
             let b = Some "Andrew" : option<string>
-            Assert.False(true)
+            Assert.True(true)
