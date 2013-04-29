@@ -60,6 +60,12 @@ module MyList =
         | Nil -> z
         | Cons(x, xs) -> foldLeft xs (f (z, x)) f
 
+    let foldLeftByRight (l: MyList<'a>) (z:'b) (f: ('b*'a) -> 'b) : 'b =
+        foldRight l z (fun (b,a) -> f(a,b))
+
+    let foldRightByLeft (l: MyList<'a>) (z:'b) (f: ('a*'b) -> 'b) : 'b =
+        foldLeft l z (fun (b,a) -> f(a,b))
+
     let tupleUp (f: 'a -> 'b -> 'b) =
         fun (a,b) ->
             f(a)(b)
@@ -119,3 +125,19 @@ module MyList =
         // sum2 input |> ignore // will overflow
         sumLeft input |> ignore
 
+    let reverse1 l = 
+        let rec intReverse i o =
+            match i with
+            | Nil -> o
+            | Cons(x,xs) -> intReverse xs (Cons(x,o))
+        intReverse l Nil
+
+    let reverseFold l = 
+        foldRight l Nil (fun (a,b) -> Cons(a,b))
+
+    [<Test>]
+    let ``Reverse`` () : unit =
+        let input = Cons(1,Cons(2,Cons(3,Nil)))
+        let result = reverse1 input
+        let expectedResult = Cons(3,Cons(2,Cons(1,Nil)))
+        Assert.AreEqual(expectedResult, result)
