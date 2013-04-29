@@ -4,6 +4,10 @@ type MyList<'a> =
     | Nil
     | Cons of ('a * MyList<'a>)
 
+type MyTree<'a> =
+    | Leaf of 'a
+    | Branch of (MyTree<'a>*MyTree<'a>)
+
 module MyList =
     let rec sum (ints: MyList<int>) : int =
         match ints with
@@ -147,7 +151,7 @@ module MyList =
 
     [<Test>]
     let ``AppendTest`` () : unit =
-        let input = Cons(1,Cons(2,Nil))
+        let input = Cons(1,Cons(2,Cons(3,Nil)))
         let result = append (input, input)
         let expectedResult = Cons(1,Cons(2,Cons(3,Cons(1,Cons(2,Cons(3,Nil))))))
         Assert.AreEqual(expectedResult, result)
@@ -238,3 +242,48 @@ module MyList =
         Assert.True (hasSubsequence myList (Cons(4,Nil)))
         Assert.False (hasSubsequence myList (Cons(5,Nil)))
         Assert.False (hasSubsequence myList (Cons(3,Cons(2,Nil))))
+
+    let rec treeSize t =
+        match t with
+        | Leaf _ -> 1
+        | Branch(left, right) -> treeSize left + treeSize right
+
+    [<Test>]
+    let ``Tree Size`` () : unit =
+        let myTree = Branch (Leaf(1), Branch(Leaf(2),Leaf(3)))
+        let result = treeSize myTree
+        Assert.AreEqual(3, result)
+
+    let rec treeMax (t:MyTree<int>) =
+        match t with
+        | Leaf x -> x
+        | Branch(left, right) -> max (treeMax left) (treeMax right)
+
+    [<Test>]
+    let ``Tree Maximum`` () : unit =
+        let myTree = Branch (Leaf(1), Branch(Leaf(2),Leaf(3)))
+        let result = treeMax myTree
+        Assert.AreEqual(3, result)
+
+    let rec treeDepth t =
+        match t with
+        | Leaf _ -> 1
+        | Branch(left,right) -> 1 + (max (treeDepth left) (treeDepth right))
+
+    [<Test>]
+    let ``Tree Depth`` () : unit =
+        let myTree = Branch (Leaf(1), Branch(Leaf(2),Leaf(3)))
+        let result = treeDepth myTree
+        Assert.AreEqual(3, result)
+
+    let rec treeMap t f =
+        match t with
+        | Leaf x -> Leaf (f x)
+        | Branch(left,right) -> Branch((treeMap left f),(treeMap right f))
+
+    [<Test>]
+    let ``Add one to tree items`` () : unit =
+        let myTree = Branch (Leaf(1), Branch(Leaf(2),Leaf(3)))
+        let result = treeMap myTree (fun x -> x + 1)
+        let expected = Branch (Leaf(2), Branch(Leaf(3),Leaf(4)))
+        Assert.AreEqual(expected, result)
