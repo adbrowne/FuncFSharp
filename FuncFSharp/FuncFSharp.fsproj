@@ -38,6 +38,7 @@
   <ItemGroup>
     <Compile Include="GettingStarted.fs" />
     <Compile Include="FunctionalDataStructures.fs" />
+    <Compile Include="HandlingErrors.fs" />
     <Compile Include="State2.fs" />
     <Compile Include="Rand.fs" />
     <Compile Include="Monoid.fs" />
