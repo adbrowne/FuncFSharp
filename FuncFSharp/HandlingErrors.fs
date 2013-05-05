@@ -78,3 +78,51 @@ module MyOption =
         match result with
             | None -> ()
             | Some _ -> Assert.Fail()
+
+
+type MyEither<'E,'A> =
+    | Left of 'E
+    | Right of 'A
+
+
+module MyEither = 
+    let map f x = 
+        match x with
+        | Left a -> Left a
+        | Right b -> Right (f b)
+
+    let flatMap f x =
+        match x with
+        | Right b -> f b
+        | Left a -> Left a
+
+    let orElse (f: unit -> MyEither<'E, 'B>) (x:MyEither<'E,'A>) : MyEither<'E, 'B> =
+        match x with
+        | Left b -> Left b
+        | Right a -> f()
+
+    let map2 b f x =
+        match (x,b) with
+        | (Left a, _) -> Left a
+        | (_, Left b) -> Left b
+        | (Right a, Right b) -> Right (f(a, b))
+
+    type EitherBuilder() =
+      member this.Return a = Right a
+      member this.Bind(m, f) = 
+        flatMap f m 
+
+    let either = new EitherBuilder()
+
+    [<Test>]
+    let ``Either Expression`` () : unit =
+        let result = 
+            either {
+                let! age = Right(42)
+                let! name = Left("invalid name")
+                return (name, age)
+            }
+
+        match result with
+            | Left "invalid name" -> Assert.Pass()
+            | _ -> Assert.Fail()
